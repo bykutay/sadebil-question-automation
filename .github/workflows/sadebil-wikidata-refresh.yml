@@ -15,6 +15,10 @@ on:
         description: "Wikidata questions to prefer per category/difficulty"
         required: false
         default: "250"
+      refresh_categories:
+        description: "Comma-separated categories; empty means daily guncel, Monday all"
+        required: false
+        default: ""
 
 jobs:
   refresh:
@@ -37,6 +41,7 @@ jobs:
         run: |
           $count = "${{ github.event.inputs.wikidata_per_difficulty }}"
           if (-not $count) { $count = "250" }
+          $categories = "${{ github.event.inputs.refresh_categories }}"
           powershell -ExecutionPolicy Bypass -File tools/prepare_wikidata_remote_update.ps1 `
             -Root "$PWD" `
             -Python "python" `
@@ -44,7 +49,9 @@ jobs:
             -WikidataDir "$PWD\build\wikidata_questions" `
             -RemoteDir "$PWD\remote_questions_site" `
             -Version "wikidata-${{ github.run_number }}" `
-            -WikidataPerDifficulty ([int]$count)
+            -WikidataPerDifficulty ([int]$count) `
+            -RotationSizePerLanguage 18000 `
+            -RefreshCategories "$categories"
 
       - name: Commit refreshed raw question bank
         shell: pwsh

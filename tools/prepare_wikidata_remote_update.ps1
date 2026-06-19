@@ -7,6 +7,8 @@ param(
     [string]$AndroidRoot = "",
     [string]$Version = "",
     [int]$WikidataPerDifficulty = 250,
+    [int]$RotationSizePerLanguage = 1000,
+    [string]$RefreshCategories = "",
     [switch]$SkipWikidataNetwork
 )
 
@@ -18,6 +20,14 @@ if (-not $Version) {
 
 if (-not (Test-Path -LiteralPath $Python)) {
     $Python = "python"
+}
+
+if (-not $RefreshCategories) {
+    if ((Get-Date).DayOfWeek -eq [DayOfWeek]::Monday) {
+        $RefreshCategories = "guncel,teknoloji,sanat,spor,muzik,tarih"
+    } else {
+        $RefreshCategories = "guncel"
+    }
 }
 
 $generator = Join-Path $Root "tools\generate_offline_questions.ps1"
@@ -55,16 +65,27 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "3/5 Wikidata + base banka birleştiriliyor: $RemoteDir"
+$PreviousDir = ""
 if (Test-Path -LiteralPath $RemoteDir) {
+    $PreviousDir = Join-Path ([System.IO.Path]::GetTempPath()) ("sadebil_previous_remote_" + [Guid]::NewGuid().ToString("N"))
+    Copy-Item -LiteralPath $RemoteDir -Destination $PreviousDir -Recurse -Force
     Remove-Item -LiteralPath $RemoteDir -Recurse -Force
 }
 New-Item -ItemType Directory -Force -Path $RemoteDir | Out-Null
-& $Python $merge `
-    --base-dir $BaseDir `
-    --wikidata-dir $WikidataDir `
-    --out-dir $RemoteDir `
-    --version $Version `
-    --wikidata-per-difficulty $WikidataPerDifficulty
+$mergeArgs = @(
+    $merge,
+    "--base-dir", $BaseDir,
+    "--wikidata-dir", $WikidataDir,
+    "--out-dir", $RemoteDir,
+    "--version", $Version,
+    "--wikidata-per-difficulty", $WikidataPerDifficulty,
+    "--rotation-size-per-language", $RotationSizePerLanguage,
+    "--refresh-categories", $RefreshCategories
+)
+if ($PreviousDir) {
+    $mergeArgs += @("--previous-dir", $PreviousDir)
+}
+& $Python @mergeArgs
 
 Write-Host "4/5 Kalite kontrol çalışıyor."
 $env:SADEBIL_GENERATED_ASSETS = $RemoteDir

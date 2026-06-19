@@ -9,6 +9,7 @@ category/difficulty from the stable offline bank.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 import re
@@ -75,6 +76,11 @@ def row_key(row: dict) -> str:
     return "qa:" + norm(str(row.get("question", ""))) + "|" + norm(answer)
 
 
+def stable_int(text: str) -> int:
+    digest = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
+    return int(digest[:12], 16)
+
+
 def relabel(row: dict, lang: str, category: str, index: int) -> dict:
     out = dict(row)
     out["category"] = category_name(lang, category)
@@ -89,8 +95,10 @@ def choose_rows(
     difficulty: str,
     base_rows: list[dict],
     wiki_rows: list[dict],
+    previous_rows: list[dict],
     target: int,
     wiki_limit: int,
+    replace_count: int,
     seed: int,
 ) -> list[dict]:
     rng = random.Random(seed)
@@ -99,11 +107,25 @@ def choose_rows(
 
     wiki_candidates = [r for r in wiki_rows if r.get("difficulty") == difficulty]
     base_candidates = [r for r in base_rows if r.get("difficulty") == difficulty]
+    previous_candidates = [r for r in previous_rows if r.get("difficulty") == difficulty]
     rng.shuffle(wiki_candidates)
     rng.shuffle(base_candidates)
+    rng.shuffle(previous_candidates)
+
+    keep_previous = max(0, target - replace_count) if previous_candidates else 0
+    for row in previous_candidates:
+        if len(picked) >= keep_previous:
+            break
+        key = row_key(row)
+        if key in used:
+            continue
+        picked.append(row)
+        used.add(key)
 
     for row in wiki_candidates:
-        if len(picked) >= min(wiki_limit, target):
+        if sum(1 for item in picked if str(item.get("source", "")).startswith("Wikidata")) >= min(wiki_limit, target):
+            break
+        if len(picked) >= target:
             break
         key = row_key(row)
         if key in used:
@@ -141,27 +163,42 @@ def build_language(args: argparse.Namespace, lang: str) -> dict[str, int]:
     base_dir = Path(args.base_dir)
     wiki_dir = Path(args.wikidata_dir)
     out_dir = Path(args.out_dir)
+    previous_dir = Path(args.previous_dir) if args.previous_dir else None
     category_rows: dict[str, list[dict]] = {}
     stats: Counter[str] = Counter()
+    bucket_count = len(CATEGORIES) * len(DIFFICULTIES[lang])
+    rotation_size = max(0, args.rotation_size_per_language)
+    refresh_categories = {part.strip() for part in args.refresh_categories.split(",") if part.strip()}
+    base_replace = rotation_size // bucket_count if bucket_count else 0
+    replace_remainder = rotation_size % bucket_count if bucket_count else 0
 
     for category in CATEGORIES:
         base_rows = load_rows(base_dir / f"questions_{lang}_{category}.json")
         wiki_rows = load_rows(wiki_dir / f"questions_{lang}_{category}.json")
+        previous_rows = load_rows(previous_dir / f"questions_{lang}_{category}.json") if previous_dir else []
         merged: list[dict] = []
         for diff_index, difficulty in enumerate(DIFFICULTIES[lang]):
+            bucket_index = CATEGORIES.index(category) * len(DIFFICULTIES[lang]) + diff_index
+            if previous_rows and refresh_categories and category not in refresh_categories:
+                replace_count = 0
+            else:
+                replace_count = args.target_per_difficulty if not previous_rows else base_replace + (1 if bucket_index < replace_remainder else 0)
             rows = choose_rows(
                 lang,
                 category,
                 difficulty,
                 base_rows,
                 wiki_rows,
+                previous_rows,
                 args.target_per_difficulty,
                 args.wikidata_per_difficulty,
-                seed=910241 + diff_index + len(category) * 37 + (11 if lang == "en" else 0),
+                replace_count,
+                seed=910241 + stable_int(args.version) + diff_index + len(category) * 37 + (11 if lang == "en" else 0),
             )
             merged.extend(rows)
             stats[f"{category}/{difficulty}"] = len(rows)
             stats[f"{category}/{difficulty}/wikidata"] = sum(1 for row in rows if str(row.get("source", "")).startswith("Wikidata"))
+            stats[f"{category}/{difficulty}/replacedTarget"] = replace_count
 
         category_rows[category] = merged
         write_rows(out_dir / f"questions_{lang}_{category}.json", merged)
@@ -181,6 +218,7 @@ def write_manifest(out_dir: Path, version: str, stats: dict[str, dict[str, int]]
         "generatedAt": generated_at,
         "source": "SadeBiL curated bank + Wikidata CC0 refresh",
         "defaultRefreshHours": 24,
+        "rotationSizePerLanguage": stats.get("rotationSizePerLanguage", 0),
         "stats": stats,
         "languages": {
             "tr": {
@@ -211,14 +249,18 @@ def main() -> int:
     parser.add_argument("--wikidata-dir", required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--version", required=True)
+    parser.add_argument("--previous-dir", default="")
     parser.add_argument("--target-per-difficulty", type=int, default=1000)
     parser.add_argument("--wikidata-per-difficulty", type=int, default=250)
+    parser.add_argument("--rotation-size-per-language", type=int, default=1000)
+    parser.add_argument("--refresh-categories", default="", help="Comma-separated category keys to refresh; empty refreshes all categories.")
     parser.add_argument("--mix-per-category", type=int, default=500)
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stats = {
+        "rotationSizePerLanguage": args.rotation_size_per_language,
         "tr": build_language(args, "tr"),
         "en": build_language(args, "en"),
     }

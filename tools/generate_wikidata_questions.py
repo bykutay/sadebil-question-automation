@@ -156,22 +156,33 @@ def build_specs(lang: str) -> List[Spec]:
     def dq(body: str, limit: int = 900) -> str:
         return date_query(body, langs, limit)
 
+    current_country = """
+             ?item wdt:P463 wd:Q1065.
+             FILTER NOT EXISTS { ?item wdt:P576 ?dissolved. }
+             FILTER NOT EXISTS { ?item wdt:P1366 ?replacedBy. }
+             FILTER NOT EXISTS { ?item wdt:P31 wd:Q3024240. }
+             FILTER NOT EXISTS { ?item wdt:P31 wd:Q28171280. }
+             """
+
+    def country_body(prop: str) -> str:
+        return f"{current_country}\n             ?item wdt:{prop} ?answer."
+
     specs: List[Spec] = [
         # Güncel
         Spec("country-capital", "guncel", "kolay", "label",
-             lq("?item wdt:P31 wd:Q6256; wdt:P36 ?answer.", 700),
+             lq(country_body("P36"), 700),
              "{item} ülkesinin başkenti neresidir?",
              "What is the capital of {item}?",
              "{item} ülkesinin başkenti {answer}.",
              "The capital of {item} is {answer}."),
         Spec("country-currency", "guncel", "kolay", "label",
-             lq("?item wdt:P31 wd:Q6256; wdt:P38 ?answer.", 700),
+             lq(country_body("P38"), 700),
              "{item} ülkesinin para birimi nedir?",
              "What is the currency of {item}?",
              "{item} ülkesinin para birimi {answer}.",
              "The currency of {item} is {answer}."),
         Spec("country-continent", "guncel", "kolay", "label",
-             lq("?item wdt:P31 wd:Q6256; wdt:P30 ?answer.", 700),
+             lq(country_body("P30"), 700),
              "{item} hangi kıtadadır?",
              "Which continent is {item} in?",
              "{item}, {answer} kıtasında yer alır.",
@@ -201,13 +212,13 @@ def build_specs(lang: str) -> List[Spec]:
              "{item}, {answer} içinde yer alır.",
              "{item} is in {answer}."),
         Spec("country-language", "guncel", "orta", "label",
-             lq("?item wdt:P31 wd:Q6256; wdt:P37 ?answer.", 900),
+             lq(country_body("P37"), 900),
              "{item} ülkesinin resmî dili nedir?",
              "What is an official language of {item}?",
              "{item} için resmî dil bilgilerinden biri {answer}.",
              "An official language of {item} is {answer}."),
         Spec("country-neighbor", "guncel", "zor", "label",
-             lq("?item wdt:P31 wd:Q6256; wdt:P47 ?answer.", 1100),
+             lq(country_body("P47"), 1100),
              "{item} hangi ülkeyle sınır komşusudur?",
              "Which country borders {item}?",
              "{item} ülkesinin sınır komşularından biri {answer}.",
