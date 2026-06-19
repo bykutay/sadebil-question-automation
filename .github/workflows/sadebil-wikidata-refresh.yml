@@ -3,6 +3,8 @@ name: SadeBiL Wikidata Question Refresh
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "remote_questions_site/**"
   schedule:
     # Daily refresh for the remote bank. The generator caches Wikidata results
     # during the job and the app still falls back to packaged questions.
@@ -19,9 +21,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 120
     permissions:
-      contents: read
-      pages: write
-      id-token: write
+      contents: write
 
     steps:
       - name: Checkout
@@ -46,14 +46,15 @@ jobs:
             -Version "wikidata-${{ github.run_number }}" `
             -WikidataPerDifficulty ([int]$count)
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: remote_questions_site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Commit refreshed raw question bank
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add remote_questions_site
+          if (git diff --cached --quiet) {
+            Write-Host "Remote question bank has no changes."
+          } else {
+            git commit -m "Refresh SadeBiL remote question bank"
+            git push
+          }

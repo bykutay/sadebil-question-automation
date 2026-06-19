@@ -1,0 +1,31 @@
+﻿{
+  "version": "2026-06-19-v158",
+  "appVersion": "1.58",
+  "generatedAt": "2026-06-19",
+  "defaultRefreshHours": 24,
+  "languages": {
+    "tr": {
+      "full": "questions_tr.json",
+      "categories": {
+        "guncel": { "file": "tr/guncel.json", "refresh": "daily" },
+        "teknoloji": { "file": "tr/teknoloji.json", "refresh": "weekly" },
+        "sanat": { "file": "tr/sanat.json", "refresh": "weekly" },
+        "spor": { "file": "tr/spor.json", "refresh": "weekly" },
+        "muzik": { "file": "tr/muzik.json", "refresh": "weekly" },
+        "tarih": { "file": "tr/tarih.json", "refresh": "weekly" }
+      }
+    },
+    "en": {
+      "full": "questions_en.json",
+      "categories": {
+        "guncel": { "file": "en/guncel.json", "refresh": "daily" },
+        "teknoloji": { "file": "en/teknoloji.json", "refresh": "weekly" },
+        "sanat": { "file": "en/sanat.json", "refresh": "weekly" },
+        "spor": { "file": "en/spor.json", "refresh": "weekly" },
+        "muzik": { "file": "en/muzik.json", "refresh": "weekly" },
+        "tarih": { "file": "en/tarih.json", "refresh": "weekly" }
+      }
+    }
+  }
+}
+
