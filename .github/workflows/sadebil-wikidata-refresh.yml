@@ -1,0 +1,50 @@
+name: SadeBiL Wikidata Question Refresh
+
+on:
+  schedule:
+    # Daily refresh for the remote bank. The generator caches Wikidata results
+    # during the job and the app still falls back to packaged questions.
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      wikidata_per_difficulty:
+        description: "Wikidata questions to prefer per category/difficulty"
+        required: false
+        default: "250"
+
+jobs:
+  refresh:
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build remote question bank
+        shell: pwsh
+        run: |
+          $count = "${{ github.event.inputs.wikidata_per_difficulty }}"
+          if (-not $count) { $count = "250" }
+          powershell -ExecutionPolicy Bypass -File tools/prepare_wikidata_remote_update.ps1 `
+            -Root "$PWD" `
+            -Python "python" `
+            -BaseDir "$PWD\build\base_questions" `
+            -WikidataDir "$PWD\build\wikidata_questions" `
+            -RemoteDir "$PWD\remote_questions_site" `
+            -Version "wikidata-${{ github.run_number }}" `
+            -WikidataPerDifficulty ([int]$count)
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 54439892843beb772a2adf585d36c29a
+          projectName: sadebil-questions
+          directory: remote_questions_site
+          branch: main
