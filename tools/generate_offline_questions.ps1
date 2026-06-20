@@ -90,10 +90,6 @@ function Convert-ToNominativeTr($text) {
     elseif ($last -match "(nı|ni|nu|nü)$") { $last = $last.Substring(0, $last.Length - 1) }
     elseif ($last -match "(yı|yi|yu|yü)$") { $last = $last.Substring(0, $last.Length - 2) }
     elseif ($last -match "(ışı|işi|uşu|üşü)$") { $last = $last.Substring(0, $last.Length - 1) }
-    elseif ($last -match "([bcçdfgğhjklmnprsştvyz])ı$") { $last = $last.Substring(0, $last.Length - 1) }
-    elseif ($last -match "([bcçdfgğhjklmnprsştvyz])i$") { $last = $last.Substring(0, $last.Length - 1) }
-    elseif ($last -match "([bcçdfgğhjklmnprsştvyz])u$") { $last = $last.Substring(0, $last.Length - 1) }
-    elseif ($last -match "([bcçdfgğhjklmnprsştvyz])ü$") { $last = $last.Substring(0, $last.Length - 1) }
     $words[$words.Count - 1] = $last
     return ($words -join " ")
 }
@@ -189,7 +185,7 @@ function Test-QuestionAnswerMismatch($question, $correctAnswer, $answers, $lang)
 
 function Test-BannedQuestionPattern($question) {
     if ([string]::IsNullOrWhiteSpace($question)) { return $true }
-    return "$question" -match "(?i)(doğru oyun alanı|oyun alanı ve skor|doğru saha bilgisi|doğru skor ifadesi|en uygun kısa bilgi|oynanırken amaç|sahadaki temel oyuncu sayısı|sahadaki takım oyuncu sayısı|takımında sahadaki|denince akla gelen temel ekipman|bilgisi sorulursa|hangi oyun unsurudur|hangi bağlamda kullanılır|karşılığı hangisidir|eşleşmesi hangisidir|analizi hangisidir|sıralaması hangisidir|yanlış olmayan|ayırt edici terim|müsabaka yapısı|kurala en yakın|teknik üçlü|teknik bilgi olarak|maçında temel ekipman|müsabakasında skor genellikle|hangi sporla ilgilidir|hangi sporla ilişkilidir|which playing area|playing area of|which technical fact is correct|which branch analysis|which match analysis|which distinctive|which pair of technical|which technical trio|which technical sequence|which area and|which equipment-area|which equipment area|which scoring-format|which scoring format|which format-area|which format area|which format-term|which format term|which scoring-term|which scoring term|which equipment-scoring|which equipment scoring)"
+    return "$question" -match "(?i)(doğru oyun alanı|oyun alanı ve skor|doğru saha bilgisi|doğru skor ifadesi|en uygun kısa bilgi|oynanırken amaç|sahadaki temel oyuncu sayısı|sahadaki takım oyuncu sayısı|takımında sahadaki|denince akla gelen temel ekipman|bilgisi sorulursa|hangi oyun unsurudur|hangi bağlamda kullanılır|karşılığı hangisidir|eşleşmesi hangisidir|analizi hangisidir|sıralaması hangisidir|yanlış olmayan|ayırt edici terim|müsabaka yapısı|kurala en yakın|teknik üçlü|teknik bilgi olarak|maçında temel ekipman|müsabakasında skor genellikle|hangi sporla ilgilidir|hangi sporla ilişkilidir|(icadı|fethi|savaşı|zaferi|antlaşması|devrimi) ne demektir|which playing area|playing area of|which technical fact is correct|which branch analysis|which match analysis|which distinctive|which pair of technical|which technical trio|which technical sequence|which area and|which equipment-area|which equipment area|which scoring-format|which scoring format|which format-area|which format area|which format-term|which format term|which scoring-term|which scoring term|which equipment-scoring|which equipment scoring)"
 }
 
 function Get-DefinitionTemplates($lang) {

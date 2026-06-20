@@ -73,6 +73,12 @@ BANNED_PATTERNS = [
     "teknik bilgi olarak",
     "macinda temel ekipman",
     "musabakasinda skor genellikle",
+    "icadi ne demektir",
+    "fethi ne demektir",
+    "savasi ne demektir",
+    "zaferi ne demektir",
+    "antlasmasi ne demektir",
+    "devrimi ne demektir",
 ]
 
 
